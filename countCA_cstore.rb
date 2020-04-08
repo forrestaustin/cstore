@@ -7,7 +7,7 @@ options = {batch_size: 10}
 optparse = OptionParser.new do |opts|
   opts.banner = "Usage: ruby countCA_cstore.rb [options]"
   opts.on("--batch-size SIZE", Integer, "Batch size to sample from each shard. Default: #{options[:sample_size]}") do |s|
-    options[:sample_size] = s
+    options[:batch_size] = s
   end
   datacenters = %w(east west central sg nl)
   opts.on("-d", "--datacenter DATACENTER", datacenters, "Datacenter to sample (#{datacenters.join(', ')})") do |d|
@@ -52,7 +52,7 @@ totalCA = 0
 client.connections.each do |redis|
   cur = 0
   begin
-    cur, keys = redis.scan(cursor=cur, count: 10)
+    cur, keys = redis.scan(cursor=cur, count: options[:batch_size])
     users_CA = 0
     raw_thrifts = redis.pipelined { |r| keys.map { |key| r.get(key) } }
     raw_thrifts.each do |thrift|
@@ -65,7 +65,7 @@ client.connections.each do |redis|
       end
     end
     totalCA += users_inCA
-    users_searched += 10
+    users_searched += options[:batch_size]
   end until cur==0
 end
 
